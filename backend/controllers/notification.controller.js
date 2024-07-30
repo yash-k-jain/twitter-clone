@@ -37,6 +37,7 @@ export const deleteNotifications = async (req, res) => {
 //         if(notificaion.receiver.toString() !== req.user._id.toString()) {
 //             return res.status(403).json({ error: "You are not authorized to delete this notification" });
 //         }
+s
 
 //         await Notification.findByIdAndDelete(req.params.id);
 //         return res.status(200).json({ message: "Notification deleted successfully" });
