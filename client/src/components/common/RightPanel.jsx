@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import RightPanelSkeleton from "../skeletons/RightPanelSkeleton";
+import LoadingSpinner from "./LoadingSpinner"
 // import { USERS_FOR_RIGHT_PANEL } from "../../utils/db/dummy.js";
 
 import { useQuery } from "react-query";
+import useFollow from "../../hooks/useFollow";
 
 const RightPanel = () => {
   const { data: suggestedUsers, isLoading } = useQuery({
@@ -22,6 +24,8 @@ const RightPanel = () => {
       }
     },
   });
+
+  const { follow, isLoading: isPending } = useFollow();
 
   if (suggestedUsers?.length === 0) return <div className="md:w-64 w-0"></div>;
 
@@ -66,9 +70,13 @@ const RightPanel = () => {
                 <div>
                   <button
                     className="btn bg-white text-black hover:bg-white hover:opacity-90 rounded-full btn-sm"
-                    onClick={(e) => e.preventDefault()}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      follow(user._id);
+                      console.log(isPending)
+                    }}
                   >
-                    Follow
+                    {isPending ? <LoadingSpinner size="sm" /> : "Follow"}
                   </button>
                 </div>
               </Link>
