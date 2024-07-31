@@ -5,6 +5,8 @@ import { IoCloseSharp } from "react-icons/io5";
 
 import { useQuery, useMutation, useQueryClient } from "react-query";
 
+import { toast } from "react-hot-toast";
+
 const CreatePost = () => {
   const [text, setText] = useState("");
   const [img, setImg] = useState(null);
@@ -42,6 +44,7 @@ const CreatePost = () => {
     },
 
     onSuccess: () => {
+      toast.success("Post created successfully");
       setImg(null);
       setText("");
       queryClient.invalidateQueries(["posts"]);
