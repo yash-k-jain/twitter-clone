@@ -12,10 +12,19 @@ import { useMutation, useQuery, useQueryClient } from "react-query";
 
 import { toast } from "react-hot-toast";
 
+import { formatPostDate } from "../../utils/db/date";
+
 const Post = ({ post }) => {
   const [comment, setComment] = useState("");
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
   const queryClient = useQueryClient();
+
+  const postOwner = post.user;
+  const isLiked = post.likes.includes(authUser?._id);
+
+  const isMyPost = authUser?._id === postOwner._id;
+
+  const formattedDate = formatPostDate(post.createdAt);
 
   const { mutate: deletePost, isLoading: isDeleting } = useMutation({
     mutationFn: async () => {
@@ -72,14 +81,47 @@ const Post = ({ post }) => {
     },
   });
 
-  const postOwner = post.user;
-  const isLiked = post.likes.includes(authUser?._id);
+  const { mutate: commentOnPost, isLoading: isCommenting } = useMutation({
+    mutationFn: async () => {
+      try {
+        const res = await fetch(`/api/posts/comment/${post._id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: comment }),
+        });
 
-  const isMyPost = authUser?._id === postOwner._id;
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to comment on post");
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
 
-  const formattedDate = "1h";
+    onSuccess: (updatedComments) => {
+      toast.success("Comment posted successfully");
+      setComment("");
+      // queryClient.invalidateQueries({ queryKey: ["posts"] });
 
-  const isCommenting = false;
+      queryClient.setQueryData(["posts"], (oldData) => {
+        return oldData.map((p) => {
+          if (p._id === post._id) {
+            return { ...p, comments: updatedComments };
+          }
+
+          return p;
+        });
+      });
+
+      document.getElementById("comments_modal" + post._id).close();
+    },
+
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const handleDeletePost = () => {
     deletePost();
@@ -87,6 +129,8 @@ const Post = ({ post }) => {
 
   const handlePostComment = (e) => {
     e.preventDefault();
+    if (isCommenting) return;
+    commentOnPost();
   };
 
   const handleLikePost = () => {
@@ -111,7 +155,7 @@ const Post = ({ post }) => {
               {postOwner.fullName}
             </Link>
             <span className="text-gray-700 flex gap-1 text-sm">
-              <Link to={`/profile/${postOwner.username}`}>
+              <Link to={`/profile/${postOwner.userName}`}>
                 @{postOwner.userName}
               </Link>
               <span>·</span>
@@ -186,7 +230,7 @@ const Post = ({ post }) => {
                               {comment.user.fullName}
                             </span>
                             <span className="text-gray-700 text-sm">
-                              @{comment.user.username}
+                              @{comment.user.userName}
                             </span>
                           </div>
                           <div className="text-sm">{comment.text}</div>
