@@ -5,31 +5,59 @@ import { IoSettingsOutline } from "react-icons/io5";
 import { FaUser } from "react-icons/fa";
 import { FaHeart } from "react-icons/fa6";
 
-const NotificationPage = () => {
-  const isLoading = false;
-  const notifications = [
-    {
-      _id: "1",
-      sender: {
-        _id: "1",
-        username: "johndoe",
-        profileImg: "/avatars/boy2.png",
-      },
-      type: "follow",
-    },
-    {
-      _id: "2",
-      sender: {
-        _id: "2",
-        username: "janedoe",
-        profileImg: "/avatars/girl1.png",
-      },
-      type: "like",
-    },
-  ];
+import { toast } from "react-hot-toast";
 
+import { useMutation, useQuery, useQueryClient } from "react-query";
+
+const NotificationPage = () => {
+  const queryClient = useQueryClient();
+  const { data: notifications, isLoading } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/notifications`);
+
+        const data = await res.json();
+
+        if (!res.ok)
+          throw new Error(data.error || "Failed to fetch notifications");
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+  });
+
+  const { mutate: deleteNotification, isLoading: isDeleting } = useMutation({
+    mutationFn: async () => {
+      try {
+        const res = await fetch(`/api/notifications`, {
+          method: "DELETE",
+        });
+
+        const data = await res.json();
+
+        if (!res.ok)
+          throw new Error(data.error || "Failed to delete notifications");
+
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+
+    onSuccess: () => {
+      toast.success("Notifications deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
   const deleteNotifications = () => {
-    alert("All notifications deleted");
+    if (isDeleting) return;
+    deleteNotification();
   };
 
   return (
@@ -68,12 +96,12 @@ const NotificationPage = () => {
               {notification.type === "like" && (
                 <FaHeart className="w-7 h-7 text-red-500" />
               )}
-              <Link to={`/profile/${notification.sender.username}`}>
+              <Link to={`/profile/${notification.sender.userName}`}>
                 <div className="avatar">
                   <div className="w-8 rounded-full">
                     <img
                       src={
-                        notification.sender.profileImg ||
+                        notification.sender.profileImage ||
                         "/avatar-placeholder.png"
                       }
                     />
@@ -81,7 +109,7 @@ const NotificationPage = () => {
                 </div>
                 <div className="flex gap-1">
                   <span className="font-bold">
-                    @{notification.sender.username}
+                    @{notification.sender.userName}
                   </span>{" "}
                   {notification.type === "follow"
                     ? "followed you"

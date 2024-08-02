@@ -6,7 +6,7 @@ export const getNotifications = async (req, res) => {
       receiver: req.user._id,
     }).populate({
       path: "sender",
-      select: "userName, profileImage",
+      select: "userName profileImage",
     });
 
     await Notification.updateMany({ receiver: req.user._id }, { isRead: true });
