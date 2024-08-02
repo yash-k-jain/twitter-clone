@@ -1,17 +1,21 @@
 import Post from "./Post";
 import PostSkeleton from "../skeletons/PostSkeleton";
-import { POSTS } from "../../utils/db/dummy";
+// import { POSTS } from "../../utils/db/dummy";
 
 import { useQuery } from "react-query";
 import { useEffect } from "react";
 
-const Posts = ({ feedType }) => {
+const Posts = ({ feedType, userName, id }) => {
   const getPostEndpoint = () => {
     switch (feedType) {
       case "forYou":
         return "/api/posts/all";
       case "following":
         return "/api/posts/followingUserPost";
+      case "posts":
+        return `/api/posts/user/${userName}`
+      case "likes":
+        return `/api/posts/likes/${id}`
       default:
         return "/api/posts/all";
     }
