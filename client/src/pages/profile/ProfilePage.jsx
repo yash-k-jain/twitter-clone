@@ -12,11 +12,17 @@ import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 
-import { useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
+
+import { toast } from "react-hot-toast";
+
+import useFollow from "../../hooks/useFollow";
 
 import { formatMemberSinceDate } from "../../utils/db/date";
+import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 const ProfilePage = () => {
+  const queryClient = useQueryClient();
   const [coverImage, setCoverImage] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [feedType, setFeedType] = useState("posts");
@@ -25,6 +31,8 @@ const ProfilePage = () => {
 
   const coverImageRef = useRef(null);
   const profileImageRef = useRef(null);
+
+  const { follow, isLoading: isFollowing } = useFollow();
 
   const {
     data: user,
@@ -35,7 +43,6 @@ const ProfilePage = () => {
     queryKey: ["user-profile"],
     queryFn: async () => {
       try {
-        console.log(userName);
         const res = await fetch(`/api/users/profile/${userName}`);
 
         const data = await res.json();
@@ -51,6 +58,43 @@ const ProfilePage = () => {
   const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 
   const isMyProfile = user?._id === authUser?._id;
+  const amIFollowing = authUser?.following.includes(user?._id);
+
+  const { mutate: updateProfile, isLoading: isUpdatingProfile } = useMutation({
+    mutationFn: async () => {
+      try {
+        const res = await fetch(`/api/users/update`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            coverImage,
+            profileImage,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to update profile");
+
+        return data;
+      } catch (error) {
+        throw new Error(error);
+      }
+    },
+
+    onSuccess: () => {
+      toast.success("Profile updated successfully");
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
+        queryClient.invalidateQueries({ queryKey: ["user-profile"] }),
+      ]);
+    },
+
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   useEffect(() => {
     refetch();
@@ -142,21 +186,22 @@ const ProfilePage = () => {
                 </div>
               </div>
               <div className="flex justify-end px-4 mt-5">
-                {isMyProfile && <EditProfileModal />}
+                {isMyProfile && <EditProfileModal authUser={authUser} />}
                 {!isMyProfile && (
                   <button
                     className="btn btn-outline rounded-full btn-sm"
-                    onClick={() => alert("Followed successfully")}
+                    onClick={() => follow(user?._id)}
                   >
-                    Follow
+                    {isFollowing && <LoadingSpinner />}
+                    {amIFollowing ? "UnFollow" : "Folllow"}
                   </button>
                 )}
                 {(coverImage || profileImage) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-                    onClick={() => alert("Profile updated successfully")}
+                    onClick={() => updateProfile()}
                   >
-                    Update
+                    {isUpdatingProfile ? <LoadingSpinner /> : "Update"}
                   </button>
                 )}
               </div>
@@ -176,12 +221,12 @@ const ProfilePage = () => {
                       <>
                         <FaLink className="w-3 h-3 text-slate-500" />
                         <a
-                          href="https://youtube.com/@asaprogrammer_"
+                          href={`${user?.link}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-sm text-blue-500 hover:underline"
                         >
-                          youtube.com/@asaprogrammer_
+                          {user?.link}
                         </a>
                       </>
                     </div>
@@ -231,7 +276,7 @@ const ProfilePage = () => {
             </>
           )}
 
-          <Posts feedType={feedType} userName={userName} id={user._id} />
+          <Posts feedType={feedType} userName={userName} id={user?._id} />
         </div>
       </div>
     </>
