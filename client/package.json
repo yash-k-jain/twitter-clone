@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "log-package.json": "cat package.json",
-    "build": "npm install && pwd && npm run log-package.json && vite build",
+    "build": "npm install && pwd && npm list vite && vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
