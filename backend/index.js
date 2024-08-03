@@ -1,3 +1,4 @@
+import path from "path";
 import express from "express";
 import dotenv from "dotenv/config";
 import cookieParser from "cookie-parser";
@@ -16,6 +17,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
+const __dirname = path.resolve()
+
 const app = express();
 
 app.use(express.json({ limit: "5mb" }));
@@ -26,6 +29,14 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
+
+if(process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/dist")));
+
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "../client/dist/index.html"));
+  })
+}
 
 app.listen(process.env.PORT || 5000, () => {
   console.log(`Listening on port ${process.env.PORT || 5000}`);
