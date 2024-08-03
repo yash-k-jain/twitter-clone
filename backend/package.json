@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "NODE_ENV=development nodemon index.js",
     "start": "node index.js",
-    "build": "npm install && cd ../client && npm install && npm run build"
+    "build": "npm install && cd ../client && npm run build"
   },
   "keywords": [],
   "author": "",
