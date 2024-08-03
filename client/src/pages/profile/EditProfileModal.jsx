@@ -1,12 +1,9 @@
 import { useState, useEffect } from "react";
 
-import { toast } from "react-hot-toast";
-
-import { useQueryClient, useMutation, useQuery } from "react-query";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const EditProfileModal = ({ authUser }) => {
-  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     fullName: "",
     username: "",
@@ -21,38 +18,7 @@ const EditProfileModal = ({ authUser }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const { mutate: updateProfile, isLoading: isUpdatingProfile } = useMutation({
-    mutationFn: async () => {
-      try {
-        const res = await fetch(`/api/users/update`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(formData),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to update profile");
-
-        return data;
-      } catch (error) {
-        throw new Error(error);
-      }
-    },
-
-    onSuccess: () => {
-      toast.success("Profile updated successfully");
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-        queryClient.invalidateQueries({ queryKey: ["user-profile"] }),
-      ]);
-    },
-
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const { updateProfile, isUpdatingProfile } = useUpdateUserProfile();
 
   useEffect(() => {
     if (authUser) {
@@ -85,7 +51,7 @@ const EditProfileModal = ({ authUser }) => {
             className="flex flex-col gap-4"
             onSubmit={(e) => {
               e.preventDefault();
-              updateProfile();
+              updateProfile(formData);
             }}
           >
             <div className="flex flex-wrap gap-2">

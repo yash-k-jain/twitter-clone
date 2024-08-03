@@ -12,17 +12,15 @@ import { IoCalendarOutline } from "react-icons/io5";
 import { FaLink } from "react-icons/fa";
 import { MdEdit } from "react-icons/md";
 
-import { useMutation, useQuery, useQueryClient } from "react-query";
-
-import { toast } from "react-hot-toast";
+import { useQuery } from "react-query";
 
 import useFollow from "../../hooks/useFollow";
 
 import { formatMemberSinceDate } from "../../utils/db/date";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
+import useUpdateUserProfile from "../../hooks/useUpdateUserProfile";
 
 const ProfilePage = () => {
-  const queryClient = useQueryClient();
   const [coverImage, setCoverImage] = useState(null);
   const [profileImage, setProfileImage] = useState(null);
   const [feedType, setFeedType] = useState("posts");
@@ -60,41 +58,7 @@ const ProfilePage = () => {
   const isMyProfile = user?._id === authUser?._id;
   const amIFollowing = authUser?.following.includes(user?._id);
 
-  const { mutate: updateProfile, isLoading: isUpdatingProfile } = useMutation({
-    mutationFn: async () => {
-      try {
-        const res = await fetch(`/api/users/update`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            coverImage,
-            profileImage,
-          }),
-        });
-
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to update profile");
-
-        return data;
-      } catch (error) {
-        throw new Error(error);
-      }
-    },
-
-    onSuccess: () => {
-      toast.success("Profile updated successfully");
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["authUser"] }),
-        queryClient.invalidateQueries({ queryKey: ["user-profile"] }),
-      ]);
-    },
-
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
+  const { updateProfile, isUpdatingProfile } = useUpdateUserProfile();
 
   useEffect(() => {
     refetch();
@@ -199,7 +163,11 @@ const ProfilePage = () => {
                 {(coverImage || profileImage) && (
                   <button
                     className="btn btn-primary rounded-full btn-sm text-white px-4 ml-2"
-                    onClick={() => updateProfile()}
+                    onClick={async () => {
+                      await updateProfile({ coverImage, profileImage });
+                      setCoverImage(null);
+                      setProfileImage(null);
+                    }}
                   >
                     {isUpdatingProfile ? <LoadingSpinner /> : "Update"}
                   </button>
